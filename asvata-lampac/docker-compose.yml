@@ -1,0 +1,57 @@
+version: "3.7"
+
+x-lampac-image: &lampac-image
+  ghcr.io/lampac-nextgen/lampac:1.52.0@sha256:8d7b487f77c3a0099eeec9b78f5b5c77aa64843220fa9786dac7f581cf966afb
+
+services:
+
+  app_proxy:
+    environment:
+      # <app-id>_<docker-service-name>_1
+      APP_HOST: asvata-lampac_server_1
+      APP_PORT: 9118
+      # Lampa-клиенты (Android TV, Tizen, webOS) ходят в Lampac напрямую по HTTP
+      # и не умеют проходить авторизацию umbrelOS, поэтому прокси-аутентификация
+      # отключена. Доступ ограничивайте средствами самого Lampac (accsdb / WAF в init.conf).
+      PROXY_AUTH_ADD: "false"
+
+  # Одноразовый init: создаёт структуру каталогов в APP_DATA_DIR, кладёт стартовый
+  # init.conf из образа и генерирует случайный root-пароль, если его ещё нет.
+  # Нужен потому, что init.conf и passwd лежат в корне рабочего каталога /lampac
+  # и монтируются пофайлово — файлы должны существовать на хосте до старта сервера.
+  init:
+    image: *lampac-image
+    user: "0:0"
+    restart: on-failure
+    entrypoint: ["/bin/sh", "-eu", "-c"]
+    command:
+      - |
+        mkdir -p /data/config /data/cache /data/database /data/plugins /data/mods
+        [ -f /data/config/init.conf ] || cp /lampac/example.init.conf /data/config/init.conf
+        [ -f /data/config/passwd ] || tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 > /data/config/passwd
+        chown 1000:1000 /data /data/config /data/cache /data/database /data/plugins /data/mods
+        chown 1000:1000 /data/config/init.conf /data/config/passwd
+        chmod 600 /data/config/passwd
+        echo "lampac init: ok"
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+
+  server:
+    image: *lampac-image
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: on-failure
+    stop_grace_period: 1m
+    # Chromium/Playwright требует больше /dev/shm, чем 64 МБ по умолчанию
+    shm_size: 1024mb
+    volumes:
+      # Конфиг (hot-reload) и root-пароль
+      - ${APP_DATA_DIR}/data/config/init.conf:/lampac/init.conf
+      - ${APP_DATA_DIR}/data/config/passwd:/lampac/passwd
+      # Постоянные данные
+      - ${APP_DATA_DIR}/data/cache:/lampac/cache
+      - ${APP_DATA_DIR}/data/database:/lampac/database
+      # Пользовательские плагины и модули
+      - ${APP_DATA_DIR}/data/plugins:/lampac/plugins/override
+      - ${APP_DATA_DIR}/data/mods:/lampac/mods

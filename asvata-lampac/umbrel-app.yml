@@ -1,0 +1,63 @@
+manifestVersion: 1.1
+id: asvata-lampac
+category: media
+name: Lampac
+version: "1.52.0"
+tagline: Самохостируемый backend-сервер для Lampa
+description: >-
+  Lampac NextGen — backend-сервер для медиаприложения Lampa. Собирает ссылки на публично
+  доступный контент с 70+ источников (VOD, аниме, украинские, западные) и отдаёт их клиентам
+  Lampa в виде плагинов и JSON API. Построен на ASP.NET Core (.NET 10).
+
+
+  Возможности:
+
+
+  - 70+ провайдеров контента
+
+  - Встроенный TorrServer и JacRed (агрегатор торрент-индексаторов, совместим с Jackett)
+
+  - DLNA/UPnP медиасервер
+
+  - Транскодинг через GStreamer и FFmpeg, управление дорожками и субтитрами
+
+  - Синхронизация закладок, истории и таймкодов между устройствами (SQLite)
+
+  - LampaWeb — хостинг клиента Lampa прямо с сервера, включая сборки Samsung Tizen (/samsung.wgt) и LG webOS (/lg.ipk)
+
+  - Playwright (Chromium) для обхода JS-защит, WAF с геоблокировкой и лимитами
+
+  - Горячая перезагрузка конфигурации — init.conf применяется без перезапуска
+
+
+  После установки откройте приложение и подключите клиент Lampa к адресу вашего сервера
+  на порту 9118. Конфигурация правится в файле init.conf в каталоге данных приложения
+  (см. README магазина приложений).
+
+
+  ⚠️ Приложение доступно без авторизации umbrelOS — иначе телевизоры и приставки не смогут
+  подключиться к API. Ограничивайте доступ настройками accsdb / WAF в init.conf и не пробрасывайте
+  порт 9118 в интернет без необходимости.
+
+
+  ⚠️ Lampac только агрегирует ссылки на контент, размещённый третьими лицами, и не хранит его.
+  Ответственность за использование лежит на владельце сервера.
+developer: Lampac NextGen
+website: https://github.com/lampac-nextgen/lampac
+dependencies: []
+repo: https://github.com/lampac-nextgen/lampac
+support: https://t.me/LampacTalks/13998
+port: 9118
+gallery:
+  - https://raw.githubusercontent.com/lampac-nextgen/lampac/main/docs/assets/logo.png
+icon: https://raw.githubusercontent.com/lampac-nextgen/lampac/main/docs/assets/logo.png
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Asvata
+submission: https://github.com/lampac-nextgen/lampac
+releaseNotes: >-
+  Первая сборка Lampac NextGen для umbrelOS. Образ ghcr.io/lampac-nextgen/lampac:1.52.0
+  (linux/amd64 и linux/arm64). Конфиг, кеш, база данных, плагины и модули сохраняются
+  в каталоге данных приложения. Root-пароль генерируется случайно при первой установке —
+  см. app-data/asvata-lampac/data/config/passwd.
