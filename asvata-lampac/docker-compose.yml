@@ -93,6 +93,16 @@ services:
     stop_grace_period: 1m
     # Chromium/Playwright требует больше /dev/shm, чем 64 МБ по умолчанию
     shm_size: 1024mb
+    # TorrServer работает подпроцессом внутри ЭТОГО же контейнера и сам ходит по
+    # ссылкам вида http://umbrel.local:9118/<трекер>/parsemagnet — Lampac строит их
+    # из заголовка Host запроса. Имя umbrel.local живёт только в mDNS, а в debian:13-slim
+    # нет ни avahi, ни nss-mdns, и Docker mDNS в резолвер контейнера не пробрасывает,
+    # поэтому такая ссылка не открывается и Lampa пишет «Не удалось получить HASH».
+    # Заворачиваем имя на сам контейнер: Lampac слушает 9118 на 0.0.0.0, включая loopback.
+    # Если устройство переименовано и его имя не umbrel.local — поправьте строку ниже
+    # или задайте listen.host в init.conf (см. README).
+    extra_hosts:
+      - "umbrel.local:127.0.0.1"
     # init.conf и passwd подключены симлинками, а не bind-mount отдельных файлов.
     # Bind-mount файла привязывается к inode: любой редактор с атомарным сохранением
     # (sed -i, vim, VS Code) создаёт новый файл и подменяет inode — контейнер после
