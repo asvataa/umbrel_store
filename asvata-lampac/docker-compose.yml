@@ -16,9 +16,15 @@ services:
       PROXY_AUTH_ADD: "false"
 
   # Одноразовый init: создаёт структуру каталогов в APP_DATA_DIR, кладёт стартовый
-  # init.conf из образа и генерирует случайный root-пароль, если его ещё нет.
+  # init.conf и генерирует случайный root-пароль, если их ещё нет.
   # Нужен потому, что init.conf и passwd лежат в корне рабочего каталога /lampac
   # и монтируются пофайлово — файлы должны существовать на хосте до старта сервера.
+  #
+  # Стартовый init.conf НЕ копируется из example.init.conf образа: там в
+  # BaseModule.SkipModules выключены JacRed, TorrServer, Sync и TimeCode, из-за чего
+  # маршрут /api/v2.0/indexers/*/results отдаёт 404 и Lampa пишет «Парсер не отвечает».
+  # Массивы в init.conf ЗАМЕНЯЮТ значения из base.conf, а не дополняют их, поэтому
+  # SkipModules перечислен целиком.
   init:
     image: *lampac-image
     user: "0:0"
@@ -27,7 +33,43 @@ services:
     command:
       - |
         mkdir -p /data/config /data/cache /data/database /data/plugins /data/mods
-        [ -f /data/config/init.conf ] || cp /lampac/example.init.conf /data/config/init.conf
+        if [ ! -f /data/config/init.conf ]; then
+        cat > /data/config/init.conf <<'CONF'
+        {
+          "listen": {
+            "ip": "0.0.0.0",
+            "port": 9118,
+            "scheme": "http"
+          },
+          "BaseModule": {
+            "SkipModules": [
+              "CacheMedia",
+              "Catalog",
+              "DLNA",
+              "ForkPlayerXML",
+              "MsxNative",
+              "Potok",
+              "TelegramAuth",
+              "TelegramAuthBot",
+              "Tracks",
+              "Transcoding",
+              "WebLog"
+            ]
+          },
+          "chromium": {
+            "enable": true,
+            "executablePath": "/usr/bin/chromium"
+          },
+          "JacRed": {
+            "typesearch": "jackett"
+          },
+          "online": {
+            "name": "Lampac",
+            "spiderName": "Lampac"
+          }
+        }
+        CONF
+        fi
         [ -f /data/config/passwd ] || tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 > /data/config/passwd
         chown 1000:1000 /data /data/config /data/cache /data/database /data/plugins /data/mods
         chown 1000:1000 /data/config/init.conf /data/config/passwd
