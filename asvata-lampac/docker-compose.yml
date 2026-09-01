@@ -25,6 +25,11 @@ services:
   # маршрут /api/v2.0/indexers/*/results отдаёт 404 и Lampa пишет «Парсер не отвечает».
   # Массивы в init.conf ЗАМЕНЯЮТ значения из base.conf, а не дополняют их, поэтому
   # SkipModules перечислен целиком.
+  #
+  # JacRed.disableJackett по умолчанию true (модуль рассчитан на typesearch=webapi).
+  # При этом поиск по трекерам работает, а вот /<трекер>/parsemagnet отдаёт текст
+  # "disable" — TorrServer получает его вместо торрента и Lampa пишет
+  # «Не удалось получить HASH». Для typesearch=jackett флаг обязан быть false.
   init:
     image: *lampac-image
     user: "0:0"
@@ -32,7 +37,7 @@ services:
     entrypoint: ["/bin/sh", "-eu", "-c"]
     command:
       - |
-        mkdir -p /data/config /data/cache /data/database /data/plugins /data/mods
+        mkdir -p /data/config /data/cache /data/database /data/plugins /data/mods /data/torrserver
         if [ ! -f /data/config/init.conf ]; then
         cat > /data/config/init.conf <<'CONF'
         {
@@ -61,7 +66,8 @@ services:
             "executablePath": "/usr/bin/chromium"
           },
           "JacRed": {
-            "typesearch": "jackett"
+            "typesearch": "jackett",
+            "disableJackett": false
           },
           "online": {
             "name": "Lampac",
@@ -71,7 +77,7 @@ services:
         CONF
         fi
         [ -f /data/config/passwd ] || tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 > /data/config/passwd
-        chown 1000:1000 /data /data/config /data/cache /data/database /data/plugins /data/mods
+        chown 1000:1000 /data /data/config /data/cache /data/database /data/plugins /data/mods /data/torrserver
         chown 1000:1000 /data/config/init.conf /data/config/passwd
         chmod 600 /data/config/passwd
         echo "lampac init: ok"
@@ -87,13 +93,28 @@ services:
     stop_grace_period: 1m
     # Chromium/Playwright требует больше /dev/shm, чем 64 МБ по умолчанию
     shm_size: 1024mb
+    # init.conf и passwd подключены симлинками, а не bind-mount отдельных файлов.
+    # Bind-mount файла привязывается к inode: любой редактор с атомарным сохранением
+    # (sed -i, vim, VS Code) создаёт новый файл и подменяет inode — контейнер после
+    # этого навсегда читает старую версию, пока его не пересоздадут. Симлинк на файл
+    # внутри примонтированного КАТАЛОГА /data разрешается при каждом чтении, поэтому
+    # правки подхватываются любым способом, и hot-reload конфига продолжает работать.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ln -sf /data/config/init.conf /lampac/init.conf
+        ln -sf /data/config/passwd /lampac/passwd
+        exec /usr/share/dotnet/dotnet Core.dll
     volumes:
-      # Конфиг (hot-reload) и root-пароль
-      - ${APP_DATA_DIR}/data/config/init.conf:/lampac/init.conf
-      - ${APP_DATA_DIR}/data/config/passwd:/lampac/passwd
+      # Конфиг и root-пароль (цели симлинков выше)
+      - ${APP_DATA_DIR}/data:/data
       # Постоянные данные
       - ${APP_DATA_DIR}/data/cache:/lampac/cache
       - ${APP_DATA_DIR}/data/database:/lampac/database
+      # Бинарник TorrServer, его accs.db/settings.json и список «Мои торренты».
+      # Монтируется только подкаталог: в /lampac/data лежат ffmpeg и ffprobe из образа.
+      - ${APP_DATA_DIR}/data/torrserver:/lampac/data/ts
       # Пользовательские плагины и модули
       - ${APP_DATA_DIR}/data/plugins:/lampac/plugins/override
       - ${APP_DATA_DIR}/data/mods:/lampac/mods

@@ -56,14 +56,22 @@ NEW=mystore; sed -i '' "s/asvata/$NEW/g" umbrel-app-store.yml asvata-lampac/*.ym
 
 | Хост | Контейнер | Назначение |
 | --- | --- | --- |
-| `data/config/init.conf` | `/lampac/init.conf` | Конфигурация (hot-reload, поверх `base.conf` из образа) |
-| `data/config/passwd` | `/lampac/passwd` | Root-пароль (WebLog и служебные функции) |
+| `data/config/init.conf` | `/lampac/init.conf` → симлинк | Конфигурация (hot-reload, поверх `base.conf` из образа) |
+| `data/config/passwd` | `/lampac/passwd` → симлинк | Root-пароль (WebLog и служебные функции) |
 | `data/cache` | `/lampac/cache` | Кеш |
 | `data/database` | `/lampac/database` | SQLite: Sync, TimeCode, SISI |
+| `data/torrserver` | `/lampac/data/ts` | Бинарник TorrServer, его настройки и список «Мои торренты» |
 | `data/plugins` | `/lampac/plugins/override` | Переопределение клиентских плагинов |
 | `data/mods` | `/lampac/mods` | Пользовательские модули |
 
 Файлы создаются один раз и при обновлении приложения не перезаписываются.
+
+`init.conf` и `passwd` подключены симлинками на примонтированный каталог `/data`, а не
+bind-mount'ом отдельных файлов. Bind-mount файла привязан к inode, и любое атомарное
+сохранение на хосте (`sed -i`, vim, VS Code — все они пишут временный файл и переименовывают
+его поверх) подменяет inode: контейнер после этого читает старую версию, пока его не
+пересоздадут. Через симлинк путь разрешается при каждом чтении, поэтому правки видны сразу
+и любым редактором.
 
 ### Root-пароль
 
@@ -90,8 +98,10 @@ printf '%s' 'новый_пароль' > ~/umbrel/app-data/asvata-lampac/data/con
 из-за чего не работает поиск торрентов. Что включено в стартовом конфиге:
 
 - `JacRed.typesearch: "jackett"` — Lampac сам парсит трекеры (Rutor, TorrentBy, Bitru,
-  Selezen, Anilibria, Anifilm работают без аккаунтов; Kinozal, NNMClub, Rutracker, Toloka,
-  Lostfilm требуют логин в `JacRed.Jackett.<трекер>.login`)
+  Selezen, Anilibria, Anifilm, BigFanGroup, NNMClub работают без аккаунтов; Kinozal,
+  Rutracker, Toloka, Lostfilm, Animelayer требуют логин в `JacRed.Jackett.<трекер>.login`)
+- `JacRed.disableJackett: false` — обязательно вместе с `typesearch: "jackett"`, иначе
+  не работает получение магнет-ссылок (см. ниже)
 - `TorrServer`, `Sync`, `TimeCode` — включены
 - `DLNA` — выключен: в bridge-сети umbrelOS SSDP/multicast всё равно не работает
 - `chromium.executablePath: /usr/bin/chromium` — Playwright для источников с JS-защитой
@@ -104,6 +114,12 @@ printf '%s' 'новый_пароль' > ~/umbrel/app-data/asvata-lampac/data/con
 - **`JacRed` без `typesearch` возвращает текст `typesearch == null` вместо JSON**, и клиент
   показывает «Парсер не отвечает». Валидные значения: `jackett` (парсить самому),
   `webapi` (проксировать на внешний JacRed через `JacRed.webApiHost`), `red` (своя база).
+- **`JacRed.disableJackett` по умолчанию `true`.** Модуль рассчитан на `typesearch: "webapi"`,
+  где ссылки приходят от внешнего JacRed. Флаг не влияет на поиск, но выключает маршруты
+  `/<трекер>/parsemagnet` — они отдают текстом `disable`. Трекеры, которые возвращают magnet
+  напрямую (Rutor, TorrentBy), играют; те, что отдают `Link` на `parsemagnet` (NNMClub,
+  BigFanGroup, Anifilm, Kinozal, Rutracker, Toloka, Bitru, Megapeer, Selezen, Lostfilm,
+  Animelayer), падают с «Не удалось получить HASH».
 
 Не меняйте `listen.port` — `app_proxy` ходит на `9118`.
 
@@ -137,6 +153,26 @@ curl -s "http://umbrel.local:9118/api/v2.0/indexers/all/results?apikey=1&query=m
 | `apikey` | `JacRed.apikey` задан и не совпадает с ключом в настройках Lampa |
 | JSON с `Results` | работает |
 
+Если поиск находит раздачи, но при воспроизведении часть из них выдаёт «Не удалось получить
+HASH» — проверьте `parsemagnet`. Возьмите поле `Link` из любого результата и запросите его:
+
+```bash
+curl -s "http://umbrel.local:9118/nnmclub/parsemagnet?id=1577522&apikey=1" | head -c 100
+```
+
+| Ответ | Причина |
+| --- | --- |
+| `disable` | `JacRed.disableJackett: true` (или трекер выключен в `JacRed.Jackett`) |
+| `error` | трекер недоступен или требует логин |
+| бинарный torrent / `magnet:?xt=` | работает |
+
+Состояние встроенного TorrServer:
+
+```bash
+curl -s http://umbrel.local:9118/ts/echo                                          # версия
+curl -s -X POST -d '{"action":"list"}' http://umbrel.local:9118/ts/torrents       # список
+```
+
 ### Починить уже установленный экземпляр
 
 Сервис `init` не перезаписывает существующий `init.conf`, поэтому на установке, сделанной
@@ -153,7 +189,7 @@ cat > ~/umbrel/app-data/asvata-lampac/data/config/init.conf <<'CONF'
     ]
   },
   "chromium": { "enable": true, "executablePath": "/usr/bin/chromium" },
-  "JacRed": { "typesearch": "jackett" },
+  "JacRed": { "typesearch": "jackett", "disableJackett": false },
   "online": { "name": "Lampac", "spiderName": "Lampac" }
 }
 CONF
