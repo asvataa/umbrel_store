@@ -1,7 +1,7 @@
 version: "3.7"
 
 x-lampac-image: &lampac-image
-  ghcr.io/lampac-nextgen/lampac:1.52.0@sha256:8d7b487f77c3a0099eeec9b78f5b5c77aa64843220fa9786dac7f581cf966afb
+  ghcr.io/lampac-nextgen/lampac:1.83.1@sha256:ff46ce1a49cb3c11f4dbd2d9dd0d410a0bf52de3a2884db3be91de90cc84e056
 
 services:
 
@@ -95,7 +95,7 @@ services:
     shm_size: 1024mb
     # TorrServer работает подпроцессом внутри ЭТОГО же контейнера и сам ходит по
     # ссылкам вида http://umbrel.local:9118/<трекер>/parsemagnet — Lampac строит их
-    # из заголовка Host запроса. Имя umbrel.local живёт только в mDNS, а в debian:13-slim
+    # из заголовка Host запроса. Имя umbrel.local живёт только в mDNS, а в debian-slim
     # нет ни avahi, ни nss-mdns, и Docker mDNS в резолвер контейнера не пробрасывает,
     # поэтому такая ссылка не открывается и Lampa пишет «Не удалось получить HASH».
     # Заворачиваем имя на сам контейнер: Lampac слушает 9118 на 0.0.0.0, включая loopback.

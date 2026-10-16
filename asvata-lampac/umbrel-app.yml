@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: asvata-lampac
 category: media
 name: Lampac
-version: "1.52.0"
+version: "1.83.1"
 tagline: Самохостируемый backend-сервер для Lampa
 description: >-
   Lampac NextGen — backend-сервер для медиаприложения Lampa. Собирает ссылки на публично
@@ -57,7 +57,34 @@ defaultPassword: ""
 submitter: Asvata
 submission: https://github.com/lampac-nextgen/lampac
 releaseNotes: >-
-  Первая сборка Lampac NextGen для umbrelOS. Образ ghcr.io/lampac-nextgen/lampac:1.52.0
-  (linux/amd64 и linux/arm64). Конфиг, кеш, база данных, плагины и модули сохраняются
-  в каталоге данных приложения. Root-пароль генерируется случайно при первой установке —
-  см. app-data/asvata-lampac/data/config/passwd.
+  Обновление Lampac NextGen 1.52.0 → 1.83.1 (ghcr.io/lampac-nextgen/lampac:1.83.1).
+
+
+  Безопасность (рекомендуется обновиться):
+
+  - защита от SSRF в JacRed parsemagnet, закладках и прокси
+
+  - заголовок xhost больше не подменяет хост в кешированных скриптах плагинов
+
+  - усилена криптография подписанных ссылок и прокси TorrServer, /ts/shutdown закрыт
+
+  - экранирование HTML в шаблонах и плагинах
+
+
+  Новое:
+
+  - источники RuDub, AniDub, Kinoteatr.kg, Redheadsound, Aladin, новые балансеры VoKino
+
+  - вход по QR-коду и через OpenID Connect, обновлённый DatabaseEditor
+
+  - синхронизация закладок и таймкодов с tvOS-приложением
+
+  - аппаратное кодирование VAAPI в GStreamer, GStreamer 1.28
+
+
+  Исправления: Kinogo, KinoPub, Alloha, AnimeLib, Aniliberty, FlixCDN, порядок серий,
+  утечка памяти при HLS-воспроизведении через GStreamer, плейлисты TorrServer.
+
+
+  Образ теперь на debian:forky-slim, лицензия Lampac сменилась с MIT на AGPL-3.0.
+  Если вы использовали секцию TelegramBot в init.conf — переименуйте её в QRAuthBot.

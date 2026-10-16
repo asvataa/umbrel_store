@@ -243,4 +243,4 @@ TorrServer или DLNA/UPnP — добавьте их в секцию `ports` с
 ## Лицензии
 
 Содержимое этого репозитория — конфигурация магазина. Lampac NextGen распространяется
-по [MIT](https://github.com/lampac-nextgen/lampac/blob/main/LICENSE).
+по [AGPL-3.0](https://github.com/lampac-nextgen/lampac/blob/main/LICENSE).
