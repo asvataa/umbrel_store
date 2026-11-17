@@ -149,6 +149,11 @@ services:
         condition: service_completed_successfully
     user: "1000:1000"
     restart: on-failure
+    # Образ несёт HEALTHCHECK `pgrep -x dotnet`, а dotnet здесь не запущен — без этого
+    # контейнер навсегда висит в unhealthy. umbrelOS на health не смотрит, но в docker ps
+    # это сбивает с толку при диагностике.
+    healthcheck:
+      disable: true
     environment:
       KEEP_DAYS: "7"
       MIN_FREE_GB: "50"

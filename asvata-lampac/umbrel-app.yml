@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: asvata-lampac
 category: media
 name: Lampac
-version: "1.83.1-1"
+version: "1.83.1-2"
 tagline: Самохостируемый backend-сервер для Lampa
 description: >-
   Lampac NextGen — backend-сервер для медиаприложения Lampa. Собирает ссылки на публично
@@ -57,7 +57,7 @@ defaultPassword: ""
 submitter: Asvata
 submission: https://github.com/lampac-nextgen/lampac
 releaseNotes: >-
-  Lampac NextGen 1.83.1, ревизия пакета 1.
+  Lampac NextGen 1.83.1, ревизия пакета 2.
 
 
   Новый сервис cache-cleaner чистит дисковый кэш TorrServer: раз в час удаляет раздачи,
