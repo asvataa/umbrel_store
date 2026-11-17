@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: asvata-lampac
 category: media
 name: Lampac
-version: "1.83.1"
+version: "1.83.1-1"
 tagline: Самохостируемый backend-сервер для Lampa
 description: >-
   Lampac NextGen — backend-сервер для медиаприложения Lampa. Собирает ссылки на публично
@@ -57,34 +57,14 @@ defaultPassword: ""
 submitter: Asvata
 submission: https://github.com/lampac-nextgen/lampac
 releaseNotes: >-
-  Обновление Lampac NextGen 1.52.0 → 1.83.1 (ghcr.io/lampac-nextgen/lampac:1.83.1).
+  Lampac NextGen 1.83.1, ревизия пакета 1.
 
 
-  Безопасность (рекомендуется обновиться):
-
-  - защита от SSRF в JacRed parsemagnet, закладках и прокси
-
-  - заголовок xhost больше не подменяет хост в кешированных скриптах плагинов
-
-  - усилена криптография подписанных ссылок и прокси TorrServer, /ts/shutdown закрыт
-
-  - экранирование HTML в шаблонах и плагинах
+  Новый сервис cache-cleaner чистит дисковый кэш TorrServer: раз в час удаляет раздачи,
+  в которые ничего не докачивалось 7 дней, а если на диске свободно меньше 50 ГБ —
+  самые старые, пока место не освободится. Кэш лежит на системном диске umbrelOS, и без
+  очистки он рос бы бесконечно.
 
 
-  Новое:
-
-  - источники RuDub, AniDub, Kinoteatr.kg, Redheadsound, Aladin, новые балансеры VoKino
-
-  - вход по QR-коду и через OpenID Connect, обновлённый DatabaseEditor
-
-  - синхронизация закладок и таймкодов с tvOS-приложением
-
-  - аппаратное кодирование VAAPI в GStreamer, GStreamer 1.28
-
-
-  Исправления: Kinogo, KinoPub, Alloha, AnimeLib, Aniliberty, FlixCDN, порядок серий,
-  утечка памяти при HLS-воспроизведении через GStreamer, плейлисты TorrServer.
-
-
-  Образ теперь на debian:forky-slim, лицензия Lampac сменилась с MIT на AGPL-3.0.
-  Если вы использовали секцию TelegramBot в init.conf — переименуйте её в QRAuthBot.
+  Сам дисковый кэш включается в настройках TorrServer, см. README магазина, раздел
+  «Дисковый кэш TorrServer». Без него сервис просто ничего не делает.

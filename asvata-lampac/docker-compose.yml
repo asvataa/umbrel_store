@@ -128,3 +128,52 @@ services:
       # Пользовательские плагины и модули
       - ${APP_DATA_DIR}/data/plugins:/lampac/plugins/override
       - ${APP_DATA_DIR}/data/mods:/lampac/mods
+
+  # Очистка дискового кэша TorrServer (UseDisk, TorrentsSavePath=/lampac/data/ts/cache).
+  # TorrServer сам по времени ничего не удаляет: RemoveCacheOnDrop стирает кэш сразу
+  # при выгрузке раздачи, а без него куски лежат вечно. Таймер на хосте не подходит —
+  # корень umbrelOS это overlay Rugix, и /etc сбрасывается при обновлении ОС.
+  #
+  # Раз в час:
+  #   1. удаляет раздачи, в которые ничего не докачивалось KEEP_DAYS дней
+  #      (mtime куска меняется только при записи, чтение из кэша его не обновляет);
+  #   2. если на диске меньше MIN_FREE_GB — удаляет самые старые раздачи, пока
+  #      место не освободится: кэш лежит на системном диске umbrelOS.
+  # Удаление через find -delete внутри /ts/cache, без rm -rf: пустая переменная не
+  # сможет превратиться в удаление чего-то за пределами кэша.
+  # $$ — экранирование для docker compose, иначе он подставит переменные сам.
+  cache-cleaner:
+    image: *lampac-image
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    user: "1000:1000"
+    restart: on-failure
+    environment:
+      KEEP_DAYS: "7"
+      MIN_FREE_GB: "50"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "cache-cleaner: KEEP_DAYS=$$KEEP_DAYS MIN_FREE_GB=$$MIN_FREE_GB"
+        while true; do
+          if [ -d /ts/cache ]; then
+            for d in /ts/cache/*/; do
+              [ -d "$$d" ] || continue
+              [ -n "$$(find "$$d" -type f -mtime -"$$KEEP_DAYS" -print -quit)" ] && continue
+              echo "cache-cleaner: $$(basename "$$d") не докачивалась $$KEEP_DAYS дн., удаляю"
+              find /ts/cache -mindepth 1 -maxdepth 1 -type d -name "$$(basename "$$d")" -exec find {} -delete \;
+            done
+            while [ "$$(df -Pk /ts/cache | awk 'NR==2{print int($$4/1048576)}')" -lt "$$MIN_FREE_GB" ]; do
+              oldest=$$(for d in /ts/cache/*/; do
+                [ -d "$$d" ] && printf '%s %s\n' "$$(find "$$d" -type f -printf '%T@\n' | sort -n | tail -1)" "$$(basename "$$d")"
+              done | sort -n | head -1 | cut -d' ' -f2)
+              [ -n "$$oldest" ] || break
+              echo "cache-cleaner: свободно меньше $$MIN_FREE_GB ГБ, удаляю $$oldest"
+              find /ts/cache -mindepth 1 -maxdepth 1 -type d -name "$$oldest" -exec find {} -delete \;
+            done
+          fi
+          sleep 3600
+        done
+    volumes:
+      - ${APP_DATA_DIR}/data/torrserver:/ts
