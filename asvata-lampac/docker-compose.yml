@@ -26,6 +26,13 @@ services:
   # Массивы в init.conf ЗАМЕНЯЮТ значения из base.conf, а не дополняют их, поэтому
   # SkipModules перечислен целиком.
   #
+  # Модуль Tracks (настоящие названия аудиодорожек и субтитров через ffprobe) выключен
+  # у апстрима в самом manifest.json ("enable": false), и SkipModules его не включает.
+  # Lampac сначала грузит пользовательские модули из mods/, а одноимённый из module/
+  # потом пропускает, поэтому кладём в mods/Tracks свой манифест с "enable": true, а
+  # исходники — симлинками на /lampac/module/Tracks: так модуль обновляется вместе с
+  # образом. Выключить его — добавить "Tracks" в SkipModules.
+  #
   # JacRed.disableJackett по умолчанию true (модуль рассчитан на typesearch=webapi).
   # При этом поиск по трекерам работает, а вот /<трекер>/parsemagnet отдаёт текст
   # "disable" — TorrServer получает его вместо торрента и Lampa пишет
@@ -56,7 +63,6 @@ services:
               "Potok",
               "TelegramAuth",
               "TelegramAuthBot",
-              "Tracks",
               "Transcoding",
               "WebLog"
             ]
@@ -72,10 +78,27 @@ services:
           "online": {
             "name": "Lampac",
             "spiderName": "Lampac"
+          },
+          "LampaWeb": {
+            "initPlugins": {
+              "tracks": true
+            }
           }
         }
         CONF
         fi
+        mkdir -p /data/mods/Tracks
+        for f in Controller.cs ModInit.cs ModuleConf.cs plugin.js; do
+          ln -sfn /lampac/module/Tracks/$$f /data/mods/Tracks/$$f
+        done
+        [ -f /data/mods/Tracks/manifest.json ] || cat > /data/mods/Tracks/manifest.json <<'MANIFEST'
+        {
+          "enable": true,
+          "dynamic": true,
+          "tree": ["Controller.cs", "ModInit.cs", "ModuleConf.cs"]
+        }
+        MANIFEST
+        chown -h 1000:1000 /data/mods/Tracks /data/mods/Tracks/*
         [ -f /data/config/passwd ] || tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 > /data/config/passwd
         chown 1000:1000 /data /data/config /data/cache /data/database /data/plugins /data/mods /data/torrserver
         chown 1000:1000 /data/config/init.conf /data/config/passwd

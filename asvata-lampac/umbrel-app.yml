@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: asvata-lampac
 category: media
 name: Lampac
-version: "1.83.1-2"
+version: "1.83.1-3"
 tagline: Самохостируемый backend-сервер для Lampa
 description: >-
   Lampac NextGen — backend-сервер для медиаприложения Lampa. Собирает ссылки на публично
@@ -57,14 +57,13 @@ defaultPassword: ""
 submitter: Asvata
 submission: https://github.com/lampac-nextgen/lampac
 releaseNotes: >-
-  Lampac NextGen 1.83.1, ревизия пакета 2.
+  Lampac NextGen 1.83.1, ревизия пакета 3.
 
 
-  Новый сервис cache-cleaner чистит дисковый кэш TorrServer: раз в час удаляет раздачи,
-  в которые ничего не докачивалось 7 дней, а если на диске свободно меньше 50 ГБ —
-  самые старые, пока место не освободится. Кэш лежит на системном диске umbrelOS, и без
-  очистки он рос бы бесконечно.
+  Включён модуль Tracks: в меню аудиодорожек и субтитров плеера Lampa теперь видны
+  настоящие названия из файла («MVO | LostFilm», «DUB | TVShows»), а не только язык.
+  Сервер разбирает поток через ffprobe при старте воспроизведения и кеширует результат.
 
 
-  Сам дисковый кэш включается в настройках TorrServer, см. README магазина, раздел
-  «Дисковый кэш TorrServer». Без него сервис просто ничего не делает.
+  Ревизия 2: сервис cache-cleaner чистит дисковый кэш TorrServer — удаляет раздачи,
+  в которые ничего не докачивалось 7 дней, и самые старые, если на диске меньше 50 ГБ.
